@@ -1,0 +1,131 @@
+﻿{{- if .Values.authService.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "coxda-chart.fullname" . }}-auth
+  labels:
+    {{- include "coxda-chart.labels" . | nindent 4 }}
+    app.kubernetes.io/component: auth
+spec:
+  {{- if not .Values.authService.autoscaling.enabled }}
+  replicas: {{ .Values.authService.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "coxda-chart.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: auth
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        {{- include "coxda-chart.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: auth
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: auth
+          image: "{{ .Values.authService.image.repository }}:{{ .Values.authService.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.authService.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.authService.containerPort }}
+              protocol: TCP
+          env:
+            - name: APP_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-config
+                  key: AUTH_APP_ENV
+            - name: APP_DEBUG
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-config
+                  key: AUTH_APP_DEBUG
+            - name: APP_TIMEZONE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-config
+                  key: AUTH_APP_TIMEZONE
+            - name: DB_CONNECTION
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-config
+                  key: AUTH_DB_CONNECTION
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-config
+                  key: AUTH_DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-config
+                  key: AUTH_DB_PORT
+            - name: DB_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-config
+                  key: AUTH_DB_DATABASE
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-config
+                  key: AUTH_REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-config
+                  key: AUTH_REDIS_PORT
+            - name: CACHE_DRIVER
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-config
+                  key: AUTH_CACHE_DRIVER
+            - name: QUEUE_CONNECTION
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-config
+                  key: AUTH_QUEUE_CONNECTION
+            - name: APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-secret
+                  key: AUTH_APP_KEY
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-secret
+                  key: AUTH_JWT_SECRET
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-secret
+                  key: AUTH_DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-secret
+                  key: AUTH_DB_PASSWORD
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-secret
+                  key: AUTH_REDIS_PASSWORD
+          {{- with .Values.authService.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.authService.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.authService.resources | nindent 12 }}
+{{- end }}

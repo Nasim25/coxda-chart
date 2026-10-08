@@ -1,0 +1,34 @@
+{{- if or .Values.authService.enabled .Values.commonService.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "coxda-chart.fullname" . }}-config
+  labels:
+    {{- include "coxda-chart.labels" . | nindent 4 }}
+data:
+  # Auth Service Configs
+  AUTH_APP_ENV: {{ .Values.authService.config.appEnv | quote }}
+  AUTH_APP_DEBUG: {{ .Values.authService.config.appDebug | quote }}
+  AUTH_APP_TIMEZONE: {{ .Values.authService.config.appTimezone | default "UTC" | quote }}
+  AUTH_DB_CONNECTION: {{ .Values.authService.config.dbConnection | quote }}
+  AUTH_DB_HOST: {{ .Values.authService.config.dbHost | quote }}
+  AUTH_DB_PORT: {{ .Values.authService.config.dbPort | quote }}
+  AUTH_DB_DATABASE: {{ .Values.authService.config.dbDatabase | quote }}
+  AUTH_REDIS_HOST: {{ .Values.authService.config.redisHost | quote }}
+  AUTH_REDIS_PORT: {{ .Values.authService.config.redisPort | quote }}
+  AUTH_CACHE_DRIVER: {{ .Values.authService.config.cacheDriver | quote }}
+  AUTH_QUEUE_CONNECTION: {{ .Values.authService.config.queueConnection | quote }}
+
+  # Common Service Configs
+  COMMON_APP_ENV: {{ .Values.commonService.config.appEnv | quote }}
+  COMMON_APP_DEBUG: {{ .Values.commonService.config.appDebug | quote }}
+  COMMON_APP_TIMEZONE: {{ .Values.commonService.config.appTimezone | default "UTC" | quote }}
+  COMMON_DB_CONNECTION: {{ .Values.commonService.config.dbConnection | quote }}
+  COMMON_DB_HOST: {{ .Values.commonService.config.dbHost | quote }}
+  COMMON_DB_PORT: {{ .Values.commonService.config.dbPort | quote }}
+  COMMON_DB_DATABASE: {{ .Values.commonService.config.dbDatabase | quote }}
+  COMMON_REDIS_HOST: {{ .Values.commonService.config.redisHost | quote }}
+  COMMON_REDIS_PORT: {{ .Values.commonService.config.redisPort | quote }}
+  COMMON_CACHE_DRIVER: {{ .Values.commonService.config.cacheDriver | quote }}
+  COMMON_QUEUE_CONNECTION: {{ .Values.commonService.config.queueConnection | quote }}
+{{- end }}

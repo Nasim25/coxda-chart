@@ -1,0 +1,19 @@
+﻿{{- if .Values.commonService.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "coxda-chart.fullname" . }}-common
+  labels:
+    {{- include "coxda-chart.labels" . | nindent 4 }}
+    app.kubernetes.io/component: common
+spec:
+  type: {{ .Values.commonService.service.type }}
+  ports:
+    - port: {{ .Values.commonService.service.port }}
+      targetPort: {{ .Values.commonService.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "coxda-chart.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: common
+{{- end }}

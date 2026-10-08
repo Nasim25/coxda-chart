@@ -1,0 +1,233 @@
+# ==============================================================================
+# Coxda Microservices Helm Chart - values.yaml (Local Environment)
+#
+# Managed Apps:
+#   1. coxda-app            -> Frontend Web App (Vue)
+#   2. coxda-auth-service   -> Auth Backend API (Lumen)
+#   3. coxda-common-service -> Common Backend API (Lumen + Nginx Sidecar)
+#
+# Local Ingress Testing:
+#   - Domain: http://coxda.local (or app.coxda.local, auth.coxda.local, common.coxda.local)
+#   - Database & Redis: External (host.docker.internal or local DB IP)
+# ==============================================================================
+
+# গ্লোবাল কনফিগারেশন
+global:
+  environment: local # "local" বা "production"
+  imagePullSecrets: []
+
+# ------------------------------------------------------------------------------
+# ১. Coxda Web App (Vue Frontend)
+# ------------------------------------------------------------------------------
+app:
+  enabled: true
+  name: app
+  replicaCount: 1
+
+  image:
+    repository: coxda-app
+    pullPolicy: IfNotPresent
+    tag: "latest"
+
+  containerPort: 8080
+
+  service:
+    type: ClusterIP # Ingress ব্যবহার করলে ClusterIP বেস্ট (সরাসরি পোর্টে টেস্টের জন্য LoadBalancer করতে পারেন)
+    port: 8080
+    targetPort: 8080
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+  livenessProbe:
+    httpGet:
+      path: /
+      port: 8080
+    initialDelaySeconds: 10
+    periodSeconds: 15
+
+  readinessProbe:
+    httpGet:
+      path: /
+      port: 8080
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+
+  env: []
+
+# ------------------------------------------------------------------------------
+# ২. Coxda Auth Service (Backend API)
+# ------------------------------------------------------------------------------
+authService:
+  enabled: true
+  name: auth
+  replicaCount: 1
+
+  image:
+    repository: coxda-auth-service
+    pullPolicy: IfNotPresent
+    tag: "latest"
+
+  containerPort: 80
+
+  service:
+    type: ClusterIP
+    port: 8081
+    targetPort: 80
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: 80
+    initialDelaySeconds: 20
+    periodSeconds: 15
+
+  readinessProbe:
+    httpGet:
+      path: /healthz
+      port: 80
+    initialDelaySeconds: 10
+    periodSeconds: 10
+
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+
+  config:
+    appEnv: "local"
+    appDebug: "true"
+    appTimezone: "UTC"
+    dbConnection: "mysql"
+    dbHost: "host.docker.internal" # লোকাল ডাটাবেজ IP বা host.docker.internal
+    dbPort: "3306"
+    dbDatabase: "coxda_auth"
+    redisHost: "host.docker.internal" # লোকাল রেডিস IP বা host.docker.internal
+    redisPort: "6379"
+    cacheDriver: "redis"
+    queueConnection: "redis"
+
+  secrets:
+    appKey: "base64:FALn1vG1f31UVJtcKgf6Dc8OVpWb+c7oJ/pMVmuX+N8="
+    jwtSecret: "RTS4ppHFIgkLZXhxotaGkR0wfmPOQ9UU3GfGjYbaS6dXd2YoRu5cPzH5HjewyNxM"
+    dbUsername: "root"
+    dbPassword: "password"
+    redisPassword: ""
+
+# ------------------------------------------------------------------------------
+# ৩. Coxda Common Service (Backend API)
+# ------------------------------------------------------------------------------
+commonService:
+  enabled: true
+  name: common
+  replicaCount: 1
+
+  image:
+    repository: coxda-common-service
+    pullPolicy: IfNotPresent
+    tag: "latest"
+
+  containerPort: 80
+
+  nginxSidecar:
+    enabled: true
+    image: nginx:alpine
+
+  service:
+    type: ClusterIP
+    port: 8082
+    targetPort: 80
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+  livenessProbe:
+    tcpSocket:
+      port: 80
+    initialDelaySeconds: 20
+    periodSeconds: 15
+
+  readinessProbe:
+    tcpSocket:
+      port: 80
+    initialDelaySeconds: 10
+    periodSeconds: 10
+
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+
+  config:
+    appEnv: "local"
+    appDebug: "true"
+    appTimezone: "UTC"
+    dbConnection: "mysql"
+    dbHost: "host.docker.internal"
+    dbPort: "3306"
+    dbDatabase: "coxda_common"
+    redisHost: "host.docker.internal"
+    redisPort: "6379"
+    cacheDriver: "redis"
+    queueConnection: "redis"
+
+  secrets:
+    appKey: "base64:your-app-key-here"
+    jwtSecret: "your-jwt-secret-key-here"
+    dbUsername: "root"
+    dbPassword: "password"
+    redisPassword: ""
+
+# ------------------------------------------------------------------------------
+# ৪. Ingress (Local Domain Routing)
+# ------------------------------------------------------------------------------
+ingress:
+  enabled: true # লোকালি Ingress টেস্ট করতে true রাখুন
+  className: "nginx"
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+  hosts:
+    - host: coxda.local
+      paths:
+        - path: /api/auth
+          pathType: Prefix
+          serviceName: auth
+          servicePort: 8081
+        - path: /api/common
+          pathType: Prefix
+          serviceName: common
+          servicePort: 8082
+        - path: /
+          pathType: Prefix
+          serviceName: app
+          servicePort: 8080
+  tls: [] # লোকালি SSL না লাগলে খালি থাকবে

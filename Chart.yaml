@@ -1,0 +1,15 @@
+﻿apiVersion: v2
+name: coxda-chart
+description: Production-ready Helm Chart for Coxda microservices (coxda-app, coxda-auth-service, coxda-common-service)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - coxda
+  - microservices
+  - php
+  - lumen
+  - vue
+  - kubernetes
+maintainers:
+  - name: DevOps Team

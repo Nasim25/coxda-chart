@@ -1,0 +1,23 @@
+﻿{{- if and .Values.commonService.enabled .Values.commonService.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "coxda-chart.fullname" . }}-common
+  labels:
+    {{- include "coxda-chart.labels" . | nindent 4 }}
+    app.kubernetes.io/component: common
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "coxda-chart.fullname" . }}-common
+  minReplicas: {{ .Values.commonService.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.commonService.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.commonService.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}

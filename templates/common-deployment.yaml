@@ -1,0 +1,150 @@
+﻿{{- if .Values.commonService.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "coxda-chart.fullname" . }}-common
+  labels:
+    {{- include "coxda-chart.labels" . | nindent 4 }}
+    app.kubernetes.io/component: common
+spec:
+  {{- if not .Values.commonService.autoscaling.enabled }}
+  replicas: {{ .Values.commonService.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "coxda-chart.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: common
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        {{- include "coxda-chart.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: common
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: common
+          image: "{{ .Values.commonService.image.repository }}:{{ .Values.commonService.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.commonService.image.pullPolicy }}
+          ports:
+            - name: fpm
+              containerPort: 9000
+              protocol: TCP
+          env:
+            - name: APP_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-config
+                  key: COMMON_APP_ENV
+            - name: APP_DEBUG
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-config
+                  key: COMMON_APP_DEBUG
+            - name: APP_TIMEZONE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-config
+                  key: COMMON_APP_TIMEZONE
+            - name: DB_CONNECTION
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-config
+                  key: COMMON_DB_CONNECTION
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-config
+                  key: COMMON_DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-config
+                  key: COMMON_DB_PORT
+            - name: DB_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-config
+                  key: COMMON_DB_DATABASE
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-config
+                  key: COMMON_REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-config
+                  key: COMMON_REDIS_PORT
+            - name: CACHE_DRIVER
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-config
+                  key: COMMON_CACHE_DRIVER
+            - name: QUEUE_CONNECTION
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-config
+                  key: COMMON_QUEUE_CONNECTION
+            - name: APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-secret
+                  key: COMMON_APP_KEY
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-secret
+                  key: COMMON_JWT_SECRET
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-secret
+                  key: COMMON_DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-secret
+                  key: COMMON_DB_PASSWORD
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "coxda-chart.fullname" . }}-secret
+                  key: COMMON_REDIS_PASSWORD
+          resources:
+            {{- toYaml .Values.commonService.resources | nindent 12 }}
+
+        {{- if .Values.commonService.nginxSidecar.enabled }}
+        - name: nginx
+          image: {{ .Values.commonService.nginxSidecar.image | quote }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          volumeMounts:
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+          resources:
+            limits:
+              cpu: 200m
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+        {{- end }}
+
+      {{- if .Values.commonService.nginxSidecar.enabled }}
+      volumes:
+        - name: nginx-conf
+          configMap:
+            name: {{ include "coxda-chart.fullname" . }}-common-nginx-config
+      {{- end }}
+{{- end }}

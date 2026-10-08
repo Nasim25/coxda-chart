@@ -1,0 +1,19 @@
+﻿{{- if .Values.authService.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "coxda-chart.fullname" . }}-auth
+  labels:
+    {{- include "coxda-chart.labels" . | nindent 4 }}
+    app.kubernetes.io/component: auth
+spec:
+  type: {{ .Values.authService.service.type }}
+  ports:
+    - port: {{ .Values.authService.service.port }}
+      targetPort: {{ .Values.authService.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "coxda-chart.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: auth
+{{- end }}
